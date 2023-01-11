@@ -1,5 +1,6 @@
 
 #include "linalg.h"
+#include <limits.h>
 
 //////////////////////////////////////////////////
 //     Util
@@ -140,6 +141,14 @@ bool vector_equal(Vec * v1, Vec * v2){
     return true;
 }
 
+bool vector_zero(Vec * v){
+    for (int i = 0; i < v->size; i++){
+        if (v->data[i] != 0){
+            return false;
+        }
+    }
+    return true;
+}
 
 //////////////////////////////////////////////////
 //        Matrix
@@ -182,6 +191,7 @@ void print_matrix(Matrix m){
         printf("]");
         printf("\n");
     }
+    printf("\n");
 }
 
 bool matrix_square(Matrix m){
@@ -415,13 +425,129 @@ Vec * matrix_mult_vec(Matrix * m, Vec * v){
 }
 
 
-bool matrix_multiplication_guess(Matrix * m1, Matrix * m2, Matrix * mguess){
-    assert_dim(m1);
-    assert_dim(m2);
+// P_vec = A x (Br) - Cr
+bool matrix_multiplication_guess(Matrix * A, Matrix * B, Matrix * C){
+    assert_dim(A);
+    assert_dim(B);
     // prereq for frievald's algorithm
-    assert(m1->rows == m2-> rows);
-    assert(m1->cols == m2->cols);
+    assert(A->rows == B->rows);
+    assert(A->cols == B->cols);
     Vec * r_vec = (Vec *)malloc(sizeof(Vec));
-    r_vec->data = (double *)malloc(m1->rows);
+    check_malloc_error(r_vec);
+    r_vec->size = A->rows;
+    r_vec->data = (double *)malloc(A->rows);
+    check_malloc_error(r_vec->data);
+    int rand_i;
+    for (int i = 0; i < r_vec->size; i++){
+        srand(time(NULL));
+        rand_i = rand() % 2;
+        r_vec->data[i] = rand_i;
+    }
+    Vec * Br = matrix_mult_vec(B, r_vec);
+    Br->size = A->rows;
+
+    Vec * ABr = (Vec *)malloc(sizeof(Vec));
+    check_malloc_error(ABr);
+    ABr->size = A->rows;
+    ABr = matrix_mult_vec(A, Br);
+
+    Vec * Cr = (Vec *)malloc(sizeof(Vec));
+    check_malloc_error(Cr);
+    Cr->size = A->rows;
+    Cr = matrix_mult_vec(C, r_vec);
+
+    Vec * P = vector_subtract(ABr, Cr);
+    if (vector_zero(P)){
+        return true;
+    } else {
+        return false;
+    }
+    free_vector(r_vec);
+    free_vector(Br);
+    free_vector(ABr);
+    free_vector(Cr);
+    free_vector(P);
+}
+
+Matrix * matrix_transpose(Matrix * m){
+    Matrix * ret_mat = matrix_init(m->cols, m->rows);
+    for (int row = 0; row < m->rows; row++){
+        for (int col = 0; col < m->cols; col++){
+            ret_mat->data[col][row] = m->data[row][col];
+        }
+    }
+    return ret_mat;
+}
+
+void copy_matrix(Matrix * dest, Matrix * source){
+    dest = matrix_init(source->rows, source->cols);
+    for (int i = 0; i < dest->rows; i++){
+        for (int j = 0; j < dest->cols; j++){
+            dest->data[i][j] = source->data[i][j];
+        }
+    }
+}
+
+// elementary row operations
+void matrix_elem_row_switch(Matrix * m, unsigned short row1, unsigned short row2){
+    assert(row1 < m->rows && row2 < m->rows);
+    for (int col = 0; col < m->cols; col++){
+        int temp_row1[m->cols];
+        temp_row1[col] = m->data[row1][col];
+        m->data[row1][col] = m->data[row2][col];
+        m->data[row2][col] = temp_row1[col];
+    }
+}
+void matrix_elem_constant(Matrix * m, unsigned short row, int constant){
+    assert(row < m->rows);
+    assert(constant != 0);
+    for (int i = 0; i < m->cols; i++){
+        m->data[row][i] *= constant;
+    }
+}
+void matrix_elem_row_add(Matrix * m, unsigned short row, unsigned short row2, int constant){
+    assert(row < m->rows);
+    assert(row2 < m->rows);
+    assert(constant != 0);
+    for (int i = 0; i < m->cols; i++){
+        m->data[row][i] += constant * m->data[row2][i];
+    }
+}
+
+bool matrix_is_zero(Matrix * m){
+    for (int i = 0; i < m->rows; i++){
+        for (int j = 0; j < m->cols; j++){
+            if (m->data[i][j] != 0){
+                return false;
+            }
+        }
+    }
     return true;
+}
+
+// find the first non-zero element on the col column, under the row row
+int _pivot_upper_triangle(Matrix * m, unsigned short col, unsigned short row){
+    int i;
+    for (i = row; i < m->rows; i++){
+        if (fabs(m->data[i][col]) > INT_MIN){
+            return i;
+        }
+    }
+    return -1;
+}
+
+// returns a new matrix instead of in-place modification
+Matrix * matrix_upper_triangle(Matrix * m){
+    // for now assume square matrix
+    /* if (matrix_is_zero(m)){ */
+    /*     Matrix * ret = matrix_init(m->rows, m->cols); */
+    /*     copy_matrix(ret, m); */
+    /* } */
+    //int lead = 0;
+    Matrix * ret = matrix_init(m->rows, m->cols);
+    copy_matrix(ret, m);
+
+    int i, j, k, pivot;
+    j = 0; i = 0;
+
 }

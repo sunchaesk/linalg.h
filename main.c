@@ -26,11 +26,7 @@ int test(int a, int b){
 
 
 int main(){
-    Matrix * mat = matrix_setval(2, 2, 10);
-    Vec v = {.size = 5, .data = (double[]){3, 5}};
-    Vec * vp = &v;
-    Vec * vv = matrix_mult_vec(mat, vp);
-    print_vector(vv);
-
-    return 0;
+    Matrix * m = matrix_random(4, 4, 1, 7);
+    Matrix * mm = matrix_upper_triangle(m);
+    /* print_matrix(*mm); */
 }
